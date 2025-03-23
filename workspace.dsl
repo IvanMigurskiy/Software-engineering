@@ -1,54 +1,77 @@
 workspace {
+    name "Artemizer's coinKeeper"
+    !identifiers hierarchical
 
     model {
-        user = person "Пользователь"
+        client = Person "User"
+
+        coinKeeper = softwareSystem "Coin Keeper" {
+
+            service = container "Client Service"{
+                technology "Python + Fast API"
+            }
+
+            server = container "Request Manager Server"{
+                technology "Python"
+            }
+
+            db = container "Database"{
+                technology "PostgreSQL"
+
+                users = component "Users"
+                cost = component "Cost"
+
+                income = component "Income"
+            }
+
+        }
+
+        
+        client -> coinKeeper.service "Autorization" "Browser"
+        client -> coinKeeper.service "Create planned income" "Browser"
+        client -> coinKeeper.service "Look all planned income" "Browsert"
+        client -> coinKeeper.service "Create planned cost" "Browser"
+        client -> coinKeeper.service "Look all planned cost" "Browser"
+        client -> coinKeeper.service "Calculate dynamic budget in period" "Browser"
+
+        coinKeeper.service -> coinKeeper.server "Resend request to server" "Fast API"
+
+        coinKeeper.server -> coinKeeper.db.users "Check existence of user's login" "SQL request"
+        coinKeeper.server -> coinKeeper.db.users "Check existence of user' {name, surname}" "SQL request"
+        coinKeeper.server -> coinKeeper.db.users "Add new user" "SQL request"
+        coinKeeper.server -> coinKeeper.db.income "Add new income" "SQL request"
+        coinKeeper.server -> coinKeeper.db.income "Get list of income" "SQL request"
+        coinKeeper.server -> coinKeeper.db.income "Calculate dynamic of income in period" "SQL request"
+        coinKeeper.server -> coinKeeper.db.cost "Add new cost" "SQL request"
+        coinKeeper.server -> coinKeeper.db.cost "Get  list of cost" "SQL request"
+        coinKeeper.server -> coinKeeper.db.cost "Calculate dynamic of cost in period" "SQL request"
         
 
-        frontend = softwareSystem "Frontend" {
-            
-        }
-
-        backend = softwareSystem "Backend" {
-            income = container "Планируемый доход"
-            cost = container "Планируемый расход"
-
-            user_in_app = container "Пользоваетель приложения"
-
-        }
-
-        user -> frontend "Создание нового пользователя"
-        user -> frontend "Поиск пользователя по логину"
-        user -> frontend "Поиск пользователя по маске имя и фамилии"
-        user -> frontend "Создать планируемый доход"
-        user -> frontend "Получить перечень планируемых доходов"
-        user -> frontend "Создать планируемый расход"
-        user -> frontend "Получить перечень планируемых расходов"
-        user -> frontend "Посчитать динамику бюджета за период"
-
-        frontend -> backend "Создание нового пользователя"
-        frontend -> backend "Поиск пользователя по логину"
-        frontend -> backend "Поиск пользователя по маске имя и фамилии"
-        frontend -> backend "Создать планируемый доход"
-        frontend -> backend "Получить перечень планируемых доходов"
-        frontend -> backend "Создать планируемый расход"
-        frontend -> backend "Получить перечень планируемых расходов"
-        frontend -> backend "Посчитать динамику бюджета за период"
     }
 
     views {
-        systemContext frontend "Diagram1" {
+        themes default
+
+        systemContext coinKeeper "context" {
+            include *
+            autoLayout lr
+        }
+
+        container coinKeeper "c2" {
+            include *
+            autoLayout lr
+        }
+
+        component coinKeeper.db "c3" {
             include *
             autoLayout
         }
 
-        systemContext backend "Diagram2" {
-            include *
-            autoLayout
+        dynamic coinKeeper "SampleOfWorking" "Add income"{
+           autoLayout lr
+           client -> coinKeeper.service "Create income"
+           coinKeeper.service -> coinKeeper.server "Send request on server"
+           coinKeeper.server -> coinKeeper.db "Add id of income and id of income in database table income"
         }
-
-
-        theme default
     }
-
 }
-
