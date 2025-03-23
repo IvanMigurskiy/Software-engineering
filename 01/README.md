@@ -29,3 +29,8 @@
 - Создать планируемый расход
 - Получить перечень планируемых расходов
 - Посчитать динамику бюджета за период
+
+
+To run programm install docker, change in second command <YOUR_PATH> to your Software-engineering/01 direcory path and run this commands in Software-engineering/01 direcory
+docker pull structurizr/lite
+docker run -it --rm -p 8080:8080 -v YOUR_PATH:/usr/local/structurizr structurizr/lite
