@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status, Request
 from enum import Enum
 from pydantic import BaseModel, Field
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import logging
 import os
 from typing import List, Optional
@@ -40,44 +40,36 @@ class UserPublic(BaseModel):
 class Income(BaseModel):
     income_id: int
     title: str
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
     created_at: datetime
-    updated_at: datetime
-    assignee_id: Optional[int] = None
+    user_id: Optional[int] = None
 
 class IncomeCreate(BaseModel):
     title: str = Field(..., max_length=100)
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
-    assignee_id: Optional[int] = None
 
 class Cost(BaseModel):
     cost_id: int
     title: str
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
     created_at: datetime
-    updated_at: datetime
-    assignee_id: Optional[int] = None
+    user_id: Optional[int] = None
 
 class CostCreate(BaseModel):
     title: str = Field(..., max_length=100)
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
-    assignee_id: Optional[int] = None
 
 class Budget(BaseModel):
     value:  Optional[int] = None
@@ -107,99 +99,88 @@ async def get_current_user(request: Request):
             raise HTTPException(status_code=response.status_code, detail="Could not validate credentials")
         return UserPublic(**response.json())
 
-@app.post("/incomes/", status_code=status.HTTP_201_CREATED, response_model=Income)
+
+
+
+
+
+
+
+
+
+
+
+
+@app.post("/budget/incomes/", status_code=status.HTTP_201_CREATED, response_model=Income)
 async def create_income(income: IncomeCreate, current_user: UserPublic = Depends(get_current_user)):
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
-                INSERT INTO incomes (title, description, value, due_date, periodicity, periodicity_value, assignee_id, creator_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING *
+                INSERT INTO incomes (title, value, due_date, periodicity, periodicity_value, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING *
                 """,
-                (income.title, income.description, income.value, income.due_date, income.periodicity.value,
-                 income.periodicity_value, income.assignee_id, current_user.user_id)
+                (income.title, income.value, income.due_date, income.periodicity.value,
+                 income.periodicity_value, current_user.user_id)
             )
             new_income = cur.fetchone()
             conn.commit()
     return Income(**new_income)
 
-@app.get("/incomes/", response_model=List[Income])
+@app.get("/budget/incomes/", response_model=List[Income])
 async def read_incomes(current_user: UserPublic = Depends(get_current_user)):
+    return get_user_incomes(current_user.user_id)
+
+
+def get_user_incomes(user_id):
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM incomes WHERE assignee_id = %s",
-                        (current_user.user_id))
+            cur.execute("SELECT * FROM incomes WHERE user_id = %s",
+                        [user_id])
             incomes = cur.fetchall()
     return [Income(**income) for income in incomes]
 
-@app.get("/incomes/{income_id}", response_model=Income)
-async def read_income(income_id: int, current_user: UserPublic = Depends(get_current_user)):
-    with get_db_connection() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM incomes WHERE income_id = %s AND assignee_id = %s",
-                        (income_id, current_user.user_id))
-            income = cur.fetchone()
-    if not income:
-        raise HTTPException(status_code=404, detail="Income not found")
-    return Income(**income)
-
-@app.post("/costs/", status_code=status.HTTP_201_CREATED, response_model=Cost)
+@app.post("/budget/costs/", status_code=status.HTTP_201_CREATED, response_model=Cost)
 async def create_cost(cost: CostCreate, current_user: UserPublic = Depends(get_current_user)):
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
-                INSERT INTO costs (title, description, value, due_date, periodicity, periodicity_value, assignee_id, creator_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING *
+                INSERT INTO costs (title, value, due_date, periodicity, periodicity_value, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING *
                 """,
-                (cost.title, cost.description, cost.value, cost.due_date, cost.periodicity.value,
-                  cost.periodicity_value, cost.assignee_id, current_user.user_id)
+                (cost.title, cost.value, cost.due_date, cost.periodicity.value,
+                  cost.periodicity_value, current_user.user_id)
             )
             new_cost = cur.fetchone()
             conn.commit()
     return Cost(**new_cost)
 
-@app.get("/costs/", response_model=List[Cost])
+@app.get("/budget/costs/", response_model=List[Cost])
 async def read_costs(current_user: UserPublic = Depends(get_current_user)):
+    return get_user_costs(current_user.user_id)
+
+def get_user_costs(user_id):
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM costs WHERE assignee_id = %s",
-                        (current_user.user_id))
+            cur.execute("SELECT * FROM costs WHERE user_id = %s",
+                        [user_id])
             costs = cur.fetchall()
+
     return [Cost(**cost) for cost in costs]
 
-@app.get("/costs/{cost_id}", response_model=Cost)
-async def read_cost(cost_id: int, current_user: UserPublic = Depends(get_current_user)):
-    with get_db_connection() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM costs WHERE cost_id = %s AND assignee_id = %s",
-                        (cost_id, current_user.user_id))
-            cost = cur.fetchone()
-    if not cost:
-        raise HTTPException(status_code=404, detail="Cost not found")
-    return Cost(**cost)
-
-@app.get("/budget/", response_model=Budget)
+@app.get("/budget/budget/", response_model=Budget)
 async def get_budget(
     budget: BudgetCreate,
     current_user: UserPublic = Depends(get_current_user)
 ):
-    with get_db_connection() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM incomes WHERE assignee_id = %s",
-                        (current_user.user_id))
-            incomes = cur.fetchall()
-            incomes = [Income(**income) for income in incomes]
-            
-            cur.execute("SELECT * FROM costs WHERE assignee_id = %s",
-                        (current_user.user_id))
-            costs = cur.fetchall()
-            costs = [Cost(**cost) for cost in costs]
+    incomes = get_user_incomes(current_user.user_id)
+    costs = get_user_costs(current_user.user_id)
 
     now = datetime.utcnow()
     
     new_budget = Budget(
-        value=calculate_budget(now, budget.due_date, incomes, costs)+budget.value,
+        value=calculate_budget(now.date(), budget.due_date, incomes, costs)+budget.value,
         created_at=now,
         due_date=budget.due_date,
     )
@@ -212,10 +193,10 @@ def calculate_budget(start, end, incomes, costs):
     monthly_budget = {}
     once_budget = {}
 
-    for i in range(1, 8):
-        weekly_budget[i] = []
+    for i in range(0, 7):
+        weekly_budget[i] = 0
     for i in range(1, 32):
-        monthly_budget[i] = []
+        monthly_budget[i] = 0
 
     for income in incomes:
         if income.periodicity == Periodicity.DAILY:
@@ -238,13 +219,16 @@ def calculate_budget(start, end, incomes, costs):
             once_budget[cost.due_date] = -cost.value
 
     budget = 0
-    for i in range((end-start).days + 1):
-        budget += daily_budget + weekly_budget[i.weekday()] + monthly_budget[i.day]
-        if i in once_budget:
-            budget += once_budget[i]
+
+    delta = timedelta(days=1)
+    while start <= end:
+        budget += daily_budget + weekly_budget[start.weekday()] + monthly_budget[start.day]
+        if start in once_budget:
+            budget += once_budget[start]
+        start += delta
     
     return budget
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")

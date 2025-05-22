@@ -12,6 +12,26 @@ services:
     networks:
       - budget-network
 
+  mongodb:
+    image: mongo:5.0
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongo
+      - MONGO_INITDB_ROOT_PASSWORD=mongo
+      - MONGO_INITDB_DATABASE=budget_tracker
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - "27017:27017"
+    networks:
+      - budget-network
+
+  redis:
+    image: redis:7.0
+    ports:
+      - "6379:6379"
+    networks:
+      - budget-network
+
   auth-service:
     build:
       context: .
@@ -24,8 +44,10 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       - MASTER_USERNAME=admin
       - MASTER_PASSWORD=secret
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - postgres
+      - redis
     networks:
       - budget-network
 
@@ -37,9 +59,10 @@ services:
       - "8001:8001"
     environment:
       - AUTH_SERVICE_URL=http://auth-service:8000
+      - MONGODB_URL=mongodb://mongo:mongo@mongodb:27017/budget_tracker?authSource=admin
     depends_on:
       - auth-service
-      - postgres
+      - mongodb
     networks:
       - budget-network
 
