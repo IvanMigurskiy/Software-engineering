@@ -4,7 +4,7 @@ services:
   auth-service:
     build:
       context: .
-      dockerfile: auth_service/docker/Dockerfile
+      dockerfile: auth_service/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -21,7 +21,7 @@ services:
   budget-service:
     build:
       context: .
-      dockerfile: budget_service/docker/Dockerfile
+      dockerfile: budget_service/Dockerfile
     ports:
       - "8001:8001"
     environment:

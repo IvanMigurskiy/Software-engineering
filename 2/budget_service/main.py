@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status, Request
 from enum import Enum
 from pydantic import BaseModel, Field, validator
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import logging
 import os
 from typing import List, Optional
@@ -31,44 +31,36 @@ class UserPublic(BaseModel):
 class Income(BaseModel):
     income_id: int
     title: str
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
     created_at: datetime
-    updated_at: datetime
-    assignee_id: Optional[int] = None
+    user_id: Optional[int] = None
 
 class IncomeCreate(BaseModel):
     title: str = Field(..., max_length=100)
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
-    assignee_id: Optional[int] = None
 
 class Cost(BaseModel):
     cost_id: int
     title: str
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
     created_at: datetime
-    updated_at: datetime
-    assignee_id: Optional[int] = None
+    user_id: Optional[int] = None
 
 class CostCreate(BaseModel):
     title: str = Field(..., max_length=100)
-    description: str
-    value:  Optional[int] = None
+    value: int
     due_date: Optional[date] = None
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
-    assignee_id: Optional[int] = None
 
 class Budget(BaseModel):
     value:  Optional[int] = None
@@ -123,7 +115,7 @@ async def get_current_user(request: Request):
 async def get_current_active_user(current_user: UserPublic = Depends(get_current_user)):
     return current_user
 
-@app.post("/incomes/", status_code=status.HTTP_201_CREATED, response_model=Income)
+@app.post("/budget/incomes/", status_code=status.HTTP_201_CREATED, response_model=Income)
 async def create_income(
     income: IncomeCreate,
     current_user: UserPublic = Depends(get_current_active_user)
@@ -138,35 +130,31 @@ async def create_income(
     new_income = Income(
         income_id=income_id,
         title=income.title,
-        description=income.description,
         value=income.value,
         due_date=income.due_date,
         periodicity=income.periodicity,
         periodicity_value=income.periodicity_value,
         created_at=now,
-        updated_at=now,
-        assignee_id=current_user.user_id
+        user_id=current_user.user_id
     )
 
     fake_incomes_db[income_id] = new_income
     logger.info(f"Income {income_id} created by {current_user.username}")
     return new_income
 
-@app.get("/incomes/", response_model=List[Income])
+@app.get("/budget/incomes/", status_code=status.HTTP_200_OK, response_model=List[Income])
 async def read_incomes(current_user: UserPublic = Depends(get_current_active_user)):
-    return list(fake_incomes_db.values())
+    return get_user_incomes(current_user.user_id)
 
-@app.get("/incomes/{income_id}", response_model=Income)
-async def read_income(
-    income_id: int,
-    current_user: UserPublic = Depends(get_current_active_user)
-):
-    income = fake_incomes_db.get(income_id)
-    if not income:
-        raise HTTPException(status_code=404, detail="Income not found")
-    return income
+def get_user_incomes(user_id):
+    incomes = []
+    for income in fake_incomes_db.values():
+        if income.user_id == user_id:
+            incomes.append(income)
+    return incomes
 
-@app.post("/costs/", status_code=status.HTTP_201_CREATED, response_model=Cost)
+
+@app.post("/budget/costs/", status_code=status.HTTP_201_CREATED, response_model=Cost)
 async def create_cost(
     cost: CostCreate,
     current_user: UserPublic = Depends(get_current_active_user)
@@ -181,47 +169,41 @@ async def create_cost(
     new_cost = Cost(
         cost_id=cost_id,
         title=cost.title,
-        description=cost.description,
         value=cost.value,
         due_date=cost.due_date,
         periodicity=cost.periodicity,
         periodicity_value=cost.periodicity_value,
         created_at=now,
-        updated_at=now,
-        assignee_id=cost.assignee_id
+        user_id=current_user.user_id
     )
 
     fake_costs_db[cost_id] = new_cost
     logger.info(f"Cost {cost_id} created by {current_user.username}")
     return new_cost
 
-@app.get("/costs/", response_model=List[Cost])
+@app.get("/budget/costs/", status_code=status.HTTP_200_OK, response_model=List[Cost])
 async def read_costs(current_user: UserPublic = Depends(get_current_active_user)):
-    # In a real app, we would filter costs based on user role and ownership
-    return list(fake_costs_db.values())
+    return get_user_costs(current_user.user_id)
 
-@app.get("/costs/{cost_id}", response_model=Cost)
-async def read_cost(
-    cost_id: int,
-    current_user: UserPublic = Depends(get_current_active_user)
-):
-    cost = fake_costs_db.get(cost_id)
-    if not cost:
-        raise HTTPException(status_code=404, detail="Cost not found")
-    return cost
+def get_user_costs(user_id):
+    costs = []
+    for cost in fake_costs_db.values():
+        if cost.user_id == user_id:
+            costs.append(cost)
+    return costs
 
-@app.get("/budget/", response_model=Budget)
+@app.get("/budget/budget/", status_code=status.HTTP_200_OK, response_model=Budget)
 async def get_budget(
     budget: BudgetCreate,
     current_user: UserPublic = Depends(get_current_active_user)
 ):
-    incomes = list(fake_incomes_db.values())
-    costs = list(fake_costs_db.values())
+    incomes = get_user_incomes(current_user.user_id)
+    costs = get_user_costs(current_user.user_id)
 
     now = datetime.utcnow()
     
     new_budget = Budget(
-        value=calculate_budget(now, budget.due_date, incomes, costs)+budget.value,
+        value=calculate_budget(now.date(), budget.due_date, incomes, costs)+budget.value,
         created_at=now,
         due_date=budget.due_date,
     )
@@ -235,10 +217,10 @@ def calculate_budget(start, end, incomes, costs):
     monthly_budget = {}
     once_budget = {}
 
-    for i in range(1, 8):
-        weekly_budget[i] = []
+    for i in range(0, 7):
+        weekly_budget[i] = 0
     for i in range(1, 32):
-        monthly_budget[i] = []
+        monthly_budget[i] = 0
 
     for income in incomes:
         if income.periodicity == Periodicity.DAILY:
@@ -261,12 +243,16 @@ def calculate_budget(start, end, incomes, costs):
             once_budget[cost.due_date] = -cost.value
 
     budget = 0
-    for i in range((end-start).days + 1):
-        budget += daily_budget + weekly_budget[i.weekday()] + monthly_budget[i.day]
-        if i in once_budget:
-            budget += once_budget[i]
+
+    delta = timedelta(days=1)
+    while start <= end:
+        budget += daily_budget + weekly_budget[start.weekday()] + monthly_budget[start.day]
+        if start in once_budget:
+            budget += once_budget[start]
+        start += delta
     
     return budget
+
 
 if __name__ == "__main__":
     import uvicorn
