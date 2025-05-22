@@ -1,193 +1,178 @@
 workspace {
     name "Бюджетирование"
-    description "Система управления бюджетом, доходами и расходами для их планирования"
 
     !identifiers hierarchical
 
     model {
-        admin = person "Администратор" {
-            description "Управление пользователями, доходами и расходами."
-            tags "Person"
+        properties { 
+            structurizr.groupSeparator "/"
         }
 
         user = person "Пользователь" {
-            description "Регистрация и управление профилем, создание планируемых доходов и расходов, отслеживание бюджета."
-            tags "Person"
+            description "Управляет своим бюджетом"
+            tags "user"
         }
 
-        budgetSystem = softwareSystem "Бюджетирование" {
-            description "Система управления бюджетом, доходами и расходами для их планирования"
+        budgeting_system = softwareSystem "Система Бюджетирования" {
+            description "Позволяет считать динамику бюджета за период и управлять доходами и расходами"
+            tags "system"
 
-            apiGateway = container "API Gateway" {
-                technology "Go, Gin"
-                description "API-шлюз для маршрутизации запросов"
-                tags "Backend"
-            }
+            user_service = container "User Service" {
+                description "Управляет пользователями"
+                technology "Python"
+                tags "service"
+            } 
 
-            webApp = container "Web Application" {
-                technology "React, HTML, CSS, JavaScript"
-                description "Веб-приложение для взаимодействия пользователей с системой"
-                -> apiGateway "Передача запросов" "HTTPS/JSON"
-                tags "Frontend"
-            }
+            budget_service = container "Budget Service" {
+                description "Позволяет считать динамику бюджета за период и управлять доходами и расходами"
+                technology "Python"
+                tags "service"
+            } 
 
-            userDb = container "User Database" {
+            database = container "Database" {
+                description "Хранит данные пользователей, доходов и расходов"
                 technology "PostgreSQL"
-                description "База данных для хранения информации о пользователях"
-                tags "Database"
+                tags "database"
             }
 
-            incomeDb = container "Income Database" {
-                technology "PostgreSQL"
-                description "База данных для хранения информации о доходах"
-                tags "Database"
+            mongo = container "Mongo" {
+                description "Хранит данные доходов и расходов"
+                technology "MongoDB"
+                tags "database"
             }
 
-            costDb = container "Cost Database" {
-                technology "PostgreSQL"
-                description "База данных для хранения информации о расходах"
-                tags "Database"
+
+            redis = container "Redis" {
+                description "Хранит сессии пользователей"
+                technology "Redis"
+                tags "cache"
             }
 
-            budgetDb = container "Budget Database" {
-                technology "PostgreSQL"
-                description "База данных для хранения информации о бюджете"
-                tags "Database"
-            }
+            user -> user_service "Регистрация и вход"
+            user_service -> database "Сохранение и получение данных"
+            user_service -> redis "Сохранение сессии (JWT)"
 
-            messageBroker = container "Message Broker" {
-                technology "RabbitMQ"
-                description "Брокер сообщений для асинхронного взаимодействия между сервисами"
-                tags "Messaging"
-            }
+            user -> budget_service "Добавить доход"
+            user -> budget_service "Добавить расход"
 
-            userService = container "User Service" {
-                technology "Go, gRPC"
-                description "Сервис управления пользователями (регистрация, поиск)"
-                -> apiGateway "Запросы на управление пользователями" "HTTPS/JSON"
-                -> userDb "Хранение информации о пользователях" "SQL"
-                -> messageBroker "Публикация событий о пользователях" "AMQP"
-                tags "Backend"
-            }
-
-            incomeService = container "Income Service" {
-                technology "Go, gRPC"
-                description "Сервис управления доходами (создание, получение списка)"
-                -> apiGateway "Запросы на управление доходами" "HTTPS/JSON"
-                -> incomeDb "Хранение информации о доходах" "SQL"
-                -> messageBroker "Публикация событий о доходах" "AMQP"
-                tags "Backend"
-            }
-
-            costService = container "Cost Service" {
-                technology "Go, gRPC"
-                description "Сервис управления расходами (создание, получение списка)"
-                -> apiGateway "Запросы на управление расходами" "HTTPS/JSON"
-                -> costDb "Хранение информации о расходах" "SQL"
-                -> messageBroker "Публикация событий о расходах" "AMQP"
-                tags "Backend"
-            }
-
-            budgetService = container "Budget Service" {
-                technology "Go, gRPC"
-                description "Сервис получения информации о бюджете"
-                -> apiGateway "Запросы на получение информации о бюджете" "HTTPS/JSON"
-                -> costDb "Хранение информации о бюджете" "SQL"
-                -> messageBroker "Публикация событий о бюджете" "AMQP"
-                tags "Backend"
-            }
+            budget_service -> redis "Получение сессии"
+            budget_service -> mongo "Сохранение и получение доходов и расходов"
+            
+            budget_service -> user "Получить все доходы"
+            budget_service -> user "Получить все расходы"
+            budget_service -> user "Посчитать динамику бюджета за период"
         }
 
-        authSystem = softwareSystem "Система аутентификации и авторизации" {
-            description "Управление пользователями и их ролями. Обеспечение безопасности API."
-            tags "ExternalSystem"
-        }
-
-        admin -> budgetSystem.webApp "Управление пользователями, доходами и расходами"
-        user -> budgetSystem.webApp "Регистрация, создание доходов и расходов, отслеживание бюджета"
-
-        budgetSystem.userService -> authSystem "Аутентификация и авторизация" "HTTPS/JSON"
+        user -> budgeting_system "Использует систему для управления бюджетом"
     }
 
     views {
-        systemContext budgetSystem "SystemContext" {
+        themes default
+
+        properties {
+            structurizr.tooltips true
+        }
+
+        systemContext budgeting_system {
+            autoLayout lr 1000 1000
             include *
-            autolayout lr
         }
 
-        container budgetSystem "Container" {
+        container budgeting_system {
+            autoLayout tb 500 250
             include *
-            autolayout lr
         }
 
-        dynamic budgetSystem "createUser" "Создание нового пользователя" {
-            admin -> budgetSystem.webApp "Создание нового пользователя"
-            budgetSystem.webApp -> budgetSystem.apiGateway "POST /user"
-            budgetSystem.apiGateway -> budgetSystem.userService "Создает запись в базе данных"
-            budgetSystem.userService -> budgetSystem.userDb "INSERT INTO users"
-            budgetSystem.userService -> budgetSystem.messageBroker "Публикует событие 'UserCreated'"
-            autolayout lr
+        dynamic budgeting_system "Case1" "Создание нового пользователя" {
+            autoLayout
+            user -> budgeting_system.user_service "Создание пользователя (POST /user)"
+            budgeting_system.user_service -> budgeting_system.database "Сохранение данных о пользователе"
+            budgeting_system.user_service -> user "Возвращает подтверждение регистрации"
         }
 
-        dynamic budgetSystem "searchUserByLogin" "Поиск пользователя по логину" {
-            admin -> budgetSystem.webApp "Поиск пользователя по логину"
-            budgetSystem.webApp -> budgetSystem.apiGateway "GET /user?login={login}"
-            budgetSystem.apiGateway -> budgetSystem.userService "Ищет пользователя в базе данных"
-            budgetSystem.userService -> budgetSystem.userDb "SELECT * FROM users WHERE login={login}"
-            autolayout lr
+        dynamic budgeting_system "Case2" "Авторизация пользователя" {
+            autoLayout
+            user -> budgeting_system.user_service "Авторизация (POST /auth)"
+            budgeting_system.user_service -> budgeting_system.database "Проверка учетных данных"
+            budgeting_system.user_service -> budgeting_system.redis "Сохранение сессии"
+            budgeting_system.user_service -> user "Возвращает токен авторизации"
         }
 
-        dynamic budgetSystem "createIncome" "Создание нового дохода" {
-            user -> budgetSystem.webApp "Создание нового дохода"
-            budgetSystem.webApp -> budgetSystem.apiGateway "POST /income"
-            budgetSystem.apiGateway -> budgetSystem.incomeService "Создает запись о доходе"
-            budgetSystem.incomeService -> budgetSystem.incomeDb "INSERT INTO incomes"
-            budgetSystem.incomeService -> budgetSystem.messageBroker "Публикует событие 'IncomeCreated'"
-            autolayout lr
+        dynamic budgeting_system "Case3" "Создание дохода" {
+            autoLayout tb 1000 100
+            user -> budgeting_system.user_service "Авторизация (POST /auth)"
+            budgeting_system.user_service -> user "Возвращает токен авторизации"
+            user -> budgeting_system.budget_service "Создание дохода (POST /income)"
+            budgeting_system.budget_service -> budgeting_system.redis "Проверка наличия сессии"
+            budgeting_system.budget_service -> budgeting_system.mongo "Сохранение дохода"
+            budgeting_system.budget_service -> user "Возвращает подтверждение операции"
         }
 
-        dynamic budgetSystem "createCost" "Создание нового расхода" {
-            user -> budgetSystem.webApp "Создание нового расхода"
-            budgetSystem.webApp -> budgetSystem.apiGateway "POST /cost"
-            budgetSystem.apiGateway -> budgetSystem.costService "Создает запись о расходе"
-            budgetSystem.costService -> budgetSystem.costDb "INSERT INTO costs"
-            budgetSystem.costService -> budgetSystem.messageBroker "Публикует событие 'CostCreated'"
-            autolayout lr
+        dynamic budgeting_system "Case4" "Создание расхода" {
+            autoLayout tb 1000 100
+            user -> budgeting_system.user_service "Авторизация (POST /auth)"
+            budgeting_system.user_service -> user "Возвращает токен авторизации"
+            user -> budgeting_system.budget_service "Создание расхода (POST /cost)"
+            budgeting_system.budget_service -> budgeting_system.redis "Проверка наличия сессии"
+            budgeting_system.budget_service -> budgeting_system.mongo "Сохранение расхода"
+            budgeting_system.budget_service -> user "Возвращает подтверждение операции"
+        }
+
+        dynamic budgeting_system "Case5" "Получение перечня доходов" {
+            autoLayout tb 1000 100
+            user -> budgeting_system.user_service "Авторизация (POST /auth)"
+            budgeting_system.user_service -> user "Возвращает токен авторизации"
+            user -> budgeting_system.budget_service "Запрос списка доходов (GET /income)"
+            budgeting_system.budget_service -> budgeting_system.redis "Проверка наличия сессии"
+            budgeting_system.budget_service -> budgeting_system.mongo "Извлечение данных о доходах"
+            budgeting_system.budget_service -> user "Передача списка доходов"
+        }
+
+        dynamic budgeting_system "Case6" "Получение перечня расходов" {
+            autoLayout tb 1000 100
+            user -> budgeting_system.user_service "Авторизация (POST /auth)"
+            budgeting_system.user_service -> user "Возвращает токен авторизации"
+            user -> budgeting_system.budget_service "Запрос списка расходов (GET /cost)"
+            budgeting_system.budget_service -> budgeting_system.redis "Проверка наличия сессии"
+            budgeting_system.budget_service -> budgeting_system.mongo "Извлечение данных о расходах"
+            budgeting_system.budget_service -> user "Передача списка расходов"
+        }
+
+        dynamic budgeting_system "Case7" "Получение посчитанной динамики бюджета за период" {
+            autoLayout tb 1000 100
+            user -> budgeting_system.user_service "Авторизация (POST /auth)"
+            budgeting_system.user_service -> user "Возвращает токен авторизации"
+            user -> budgeting_system.budget_service "Запрос динамики бюджета за период (GET /budget)"
+            budgeting_system.budget_service -> budgeting_system.redis "Проверка наличия сессии"
+            budgeting_system.budget_service -> budgeting_system.mongo "Извлечение данных о доходах"
+            budgeting_system.budget_service -> budgeting_system.mongo "Извлечение данных о расходах"
+            budgeting_system.budget_service -> user "Передача динамики бюджета за период"
         }
 
         styles {
-            element "Person" {
-                shape Person
-                background #08427b
-                color #ffffff
-            }
-            element "Backend" {
-                shape RoundedBox
-                background #1168bd
-                color #ffffff
-            }
-            element "Frontend" {
-                shape WebBrowser
-                background #438dd5
-                color #ffffff
-            }
-            element "Database" {
-                shape Cylinder
-                background #85bbf0
+            element "database" {
+                shape cylinder
+                background #f4b183
                 color #000000
             }
-            element "Messaging" {
-                shape Pipe
-                background #ff8c00
-                color #ffffff
+            
+            element "service" {
+                shape roundedBox
+                background #8eaadb
+                color #000000
             }
-            element "ExternalSystem" {
-                shape Box
-                background #999999
-                color #ffffff
+            
+            element "system" {
+                shape box
+                background #d5a6bd
+                color #000000
+            }
+            
+            element "user" {
+                shape person
+                background #ffe599
+                color #000000
             }
         }
-
-        theme default
     }
 }
