@@ -1,0 +1,25 @@
+version: '3.7'
+
+services:
+  user_service:
+    build: 
+      context: ./user_service
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    volumes:
+      - ./user_service:/app
+
+  budget_service:
+    build:
+      context: ./budget_service
+      dockerfile: Dockerfile
+    ports:
+      - 8001:8001
+    volumes:
+      - ./budget_service:/app
+
+networks:
+  arch-network:
+    driver: "bridge"
+    external: false

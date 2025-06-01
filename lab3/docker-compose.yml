@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: stud
+      POSTGRES_PASSWORD: stud
+      POSTGRES_DB: user_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - arch-network
+
+  user_service:
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./user_service:/app
+    depends_on:
+      - db
+    networks:
+      - arch-network
+
+  budget_service:
+    build:
+      context: ./budget_service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./budget_service:/app
+    depends_on:
+      - user_service
+    networks:
+      - arch-network
+
+networks:
+  arch-network:
+    driver: "bridge"
+    external: false
+
+volumes:
+  db_data:

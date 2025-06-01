@@ -1,0 +1,37 @@
+Результаты бенчмарков (без авторизации)
+===================
+Тестирование с кэшем
+===================
+Тестирование с кэшем (1 поток)
+Running 15s test @ http://localhost:8000/users/1
+  1 threads and 10 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    10.61ms    2.71ms  71.91ms   90.79%
+    Req/Sec     0.95k    63.28     1.06k    80.00%
+  14243 requests in 15.01s, 2.59MB read
+  Non-2xx or 3xx responses: 14243
+Requests/sec:    949.00
+Transfer/sec:    177.01KB
+-------------------
+Тестирование с кэшем (5 потоков)
+Running 15s test @ http://localhost:8000/users/1
+  5 threads and 10 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    10.69ms    2.24ms  38.69ms   85.28%
+    Req/Sec   188.57     14.54   220.00     86.67%
+  14104 requests in 15.02s, 2.57MB read
+  Non-2xx or 3xx responses: 14104
+Requests/sec:    938.98
+Transfer/sec:    175.15KB
+-------------------
+Тестирование с кэшем (10 потоков)
+Running 15s test @ http://localhost:8000/users/1
+  10 threads and 10 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    10.79ms    2.91ms  49.81ms   91.38%
+    Req/Sec    93.88      8.75   130.00     86.27%
+  14055 requests in 15.02s, 2.56MB read
+  Non-2xx or 3xx responses: 14055
+Requests/sec:    935.82
+Transfer/sec:    174.56KB
+===================
