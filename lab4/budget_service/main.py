@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pymongo import MongoClient
 from bson import ObjectId
 from typing import List
-from models import Income, Cost, Budget, Periodicity
+from models import Income, Cost, Budget, Periodicity, IncomeCreate, CostCreate
 from datetime import date, datetime, timedelta
 from storage import incomes_collection, costs_collection
 from config import SECRET_KEY, ALGORITHM
@@ -24,14 +24,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post("/incomes", response_model=Income)
-def create_income(income: Income, current_user: dict = Depends(get_current_user)):
-    income_dict = income.dict(exclude={"income_id"})
+def create_income(income: IncomeCreate, current_user: dict = Depends(get_current_user)):
+    income_dict = income.dict()
     income_dict['due_date'] = datetime.combine(income_dict['due_date'].today(), datetime.min.time())
-
+    income_dict['username'] = current_user['username']
     result = incomes_collection.insert_one(income_dict)
-    income.income_id = str(result.inserted_id)
+    income_dict['income_id'] = str(result.inserted_id)
 
-    return income
+    return Income(**income_dict)
 
 @app.get("/incomes", response_model=List[Income])
 def get_incomes(current_user: dict = Depends(get_current_user)):
@@ -43,13 +43,14 @@ def get_incomes(current_user: dict = Depends(get_current_user)):
     return incomes
 
 @app.post("/costs", response_model=Cost)
-def create_cost(cost: Cost, current_user: dict = Depends(get_current_user)):
-    cost_dict = cost.dict(exclude={"cost_id"})
+def create_cost(cost: CostCreate, current_user: dict = Depends(get_current_user)):
+    cost_dict = cost.dict()
     cost_dict['due_date'] = datetime.combine(cost_dict['due_date'].today(), datetime.min.time())
-
+    cost_dict['username'] = current_user['username']
     result = costs_collection.insert_one(cost_dict)
-    cost.cost_id = str(result.inserted_id)
-    return cost
+    cost_dict['cost_id'] = str(result.inserted_id)
+
+    return Cost(**cost_dict)
 
 @app.get("/costs", response_model=List[Cost])
 def get_costs(current_user: dict = Depends(get_current_user)):

@@ -30,19 +30,19 @@ def init_db():
     db = SessionLocal()
     try:
         if db.query(User).count() == 0:
-            admin = User(username="admin", first_name="admin", last_name="admin", email="admin@example.com", age=None)
+            admin = User(username="admin", first_name="admin", last_name="admin", email="admin@example.com")
             admin.set_password("secret")
             db.add(admin)
             
-            user1 = User(username="user1", first_name="bob1", last_name="smith1",  email="user1@example.com", age=25)
+            user1 = User(username="user1", first_name="bob1", last_name="smith1",  email="user1@example.com")
             user1.set_password("p1")
             db.add(user1)
 
-            user2 = User(username="user2", first_name="bob2", last_name="smith2",  email="user2@example.com", age=30)
+            user2 = User(username="user2", first_name="bob2", last_name="smith2",  email="user2@example.com")
             user2.set_password("p2")
             db.add(user2)
 
-            user3 = User(username="user3", first_name="bob2", last_name="smith3",  email="user3@example.com", age=22)
+            user3 = User(username="user3", first_name="bob2", last_name="smith3",  email="user3@example.com")
             user3.set_password("p3")
             db.add(user3)
             db.commit()

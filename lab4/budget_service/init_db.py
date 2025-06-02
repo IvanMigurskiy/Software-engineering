@@ -26,7 +26,7 @@ def init_db():
     if incomes_collection.count_documents({}) == 0:
         test_incomes = [
             Income(
-                income_id = 1,
+                income_id = "1",
                 title = "Income 1",
                 value = 1001,
                 due_date = "2024-04-02",
@@ -35,7 +35,7 @@ def init_db():
                 username = "admin1"
             ),
             Income(
-                income_id = 2,
+                income_id = "2",
                 title = "Income 2",
                 value = 1002,
                 due_date = "2024-04-02",
@@ -46,6 +46,7 @@ def init_db():
         ]
         for income in test_incomes:
             income_dict = income.dict()
+            del income_dict['income_id']
             income_dict['due_date'] = datetime.combine(income_dict['due_date'].today(), datetime.min.time())
             incomes_collection.insert_one(income_dict)
         print("Test incomes inserted successfully.")

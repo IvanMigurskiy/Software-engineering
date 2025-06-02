@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from typing import List
-from models import Income, Cost, Budget, Periodicity
+from models import Income, Cost, Budget, Periodicity, IncomeCreate, CostCreate
 from config import SECRET_KEY, ALGORITHM
 from storage import incomes, costs
 from datetime import date, datetime, timedelta
@@ -27,7 +27,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
 
 @app.post("/incomes", response_model=Income)
-def create_income(income: Income, current_user: str = Depends(get_current_user)):
+def create_income(income: IncomeCreate, current_user: str = Depends(get_current_user)):
     new_id = len(incomes) + 1
     new_income = Income(
             income_id = new_id,
@@ -50,7 +50,7 @@ def get_incomes(current_user: str = Depends(get_current_user)):
     return result
 
 @app.post("/costs", response_model=Cost)
-def create_cost(cost: Cost, current_user: str = Depends(get_current_user)):
+def create_cost(cost: CostCreate, current_user: str = Depends(get_current_user)):
     new_id = len(costs) + 1
     new_cost = Cost(
             cost_id = new_id,
