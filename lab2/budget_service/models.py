@@ -20,6 +20,13 @@ class Income(BaseModel):
     periodicity_value: Optional[int]
     username: str
 
+class IncomeCreate(BaseModel):
+    title: str
+    value: int
+    due_date: Optional[date] = None
+    periodicity: Periodicity = Periodicity.ONCE
+    periodicity_value: Optional[int]
+
 class Cost(BaseModel):
     cost_id: int
     title: str
@@ -28,6 +35,13 @@ class Cost(BaseModel):
     periodicity: Periodicity = Periodicity.ONCE
     periodicity_value: Optional[int]
     username: str
+
+class CostCreate(BaseModel):
+    title: str
+    value: int
+    due_date: Optional[date] = None
+    periodicity: Periodicity = Periodicity.ONCE
+    periodicity_value: Optional[int]
 
 class Budget(BaseModel):
     value:  int

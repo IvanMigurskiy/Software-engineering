@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from typing import List
-from models import User, Token
+from models import User, Token, UserLogin, UserCreate, UserNames, UserUsername
 from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from storage import users, pwd_context
 
@@ -66,26 +66,33 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/users", response_model=User)
-def create_user(user: User, current_user: str = Depends(get_current_user)):
+def create_user(user: UserCreate):
     if any(u.username == user.username for u in users.values()):
         raise HTTPException(status_code=400, detail="Username already exists")
     new_id = len(users) + 1
-    hashed_password = pwd_context.hash(user.hashed_password)
+    hashed_password = pwd_context.hash(user.password)
     new_user = User(id=new_id, username=user.username, first_name=user.first_name, last_name=user.last_name, email=user.email, hashed_password=hashed_password)
     users[new_id] = new_user
     return new_user
 
 @app.get("/users", response_model=List[User])
-def get_users(current_user: str = Depends(get_current_user)):
+def get_users():
     return list(users.values())
 
 @app.get("/users_by_names", response_model=List[User])
-def get_users_by_first_and_last_name(user: User, current_user: str = Depends(get_current_user)):
+def get_users_by_first_and_last_name(user: UserNames):
     results = []
     for us in users.values():
         if us.first_name == user.first_name and us.last_name == user.last_name:
             results.append(us)
     return results
+
+@app.get("/user_by_username", response_model=User)
+def get_user_by_username(user: UserUsername):
+    for user_tmp in users.values():
+        if user_tmp.username == user.username:
+            return user_tmp
+    return []
 
 @app.get("/users/{user_id}", response_model=User)
 def get_user(user_id: int, current_user: str = Depends(get_current_user)):
